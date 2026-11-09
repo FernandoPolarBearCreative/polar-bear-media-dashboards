@@ -22,22 +22,31 @@ const audienceExtras={
   enotecca:{gender:[['Women',54,'CA$72.80'],['Men',44,'CA$80.30'],['Unknown',2,'—']],languages:[['English',72],['French',26],['Other',2]],types:[['Prospecting',58,1.88],['Remarketing',42,3.76]],placements:[['Instagram Feed',29],['Facebook Feed',27],['Google Search',25],['Performance Max',19]],devices:[['Mobile',57],['Desktop',36],['Tablet',7]],pacing:[['LaStella',94],['Le Vieux Pin',87]]},
   thrivebox:{gender:[['Women',73,'CA$32.40'],['Men',25,'CA$46.20'],['Unknown',2,'—']],languages:[['English',96],['French',3],['Other',1]],types:[['Prospecting',76,2.19],['Remarketing',24,4.12]],placements:[['Instagram Reels',43],['Instagram Stories',27],['Facebook Feed',19],['Facebook Stories',11]],devices:[['Mobile',81],['Desktop',17],['Tablet',2]],pacing:[['Winter 2026 campaign',67]]}
 };
+
+for(const target of ['lka','enotecca']){
+ const d=datasets[target];d.ads=[];d.sources=d.sources.map(([name])=>[name,null]);d.externalCount=null;
+ d.summary='Loading paid-media results…';d.summaryText='Metrics load from the reporting server for the selected dates.';
+ d.ages=[];d.regions=[];d.segments=[];d.insights=['Review the live campaign and ad breakdown before changing budgets.','Platform conversions may overlap across channels; they are not a deduplicated business total.','Commerce7 and Jumbula need separate connections for verified outcomes.'];
+ const b=businessData[target];b.daily=b.category=b.age=null;b.state=b.platform+' connection pending';
+ b.agePlatform=Object.fromEntries(b.locations.map(name=>[name,[]]));b.social=[];
+ for(const key of ['devices','gender','languages','types','pacing','placements'])audienceExtras[target][key]=[];b.pmax=[];
+}
 let client='lka',periodIndex=2;const periods=['Jun 1–30, 2026','Jul 1–31, 2026','Aug 1–31, 2026'],money=n=>'CA$'+Math.round(n).toLocaleString('en-CA'),platformName=p=>p==='meta'?'Meta Ads':'Google Ads';
 function bars(items){const m=Math.max(...items.map(x=>x[1]));return items.map(x=>`<div class="bar-item"><div><span>${x[0]}</span><strong>${x[1]}%</strong></div><div class="bar-track"><i style="width:${x[1]/m*100}%"></i></div></div>`).join('')}
 function aggregate(ads,key){const map=new Map();ads.forEach(a=>{const label=key==='media'?platformName(a.platform):a[key];const x=map.get(label)||{name:label,brand:key==='media'?'All brands':a.brand,platform:key==='media'?a.platform:'mixed',spend:0,impressions:0,conv:0,weighted:0};x.spend+=a.spend;x.impressions+=a.impressions;x.conv+=a.conv;x.weighted+=a.ctr*a.impressions;map.set(label,x)});return [...map.values()].map(x=>({...x,ctr:x.weighted/x.impressions}))}
 function campaignMatches(a){const v=campaignFilter.value;if(v==='all')return true;if(v==='search')return a.format==='Search';if(v==='pmax')return a.format==='PMax';if(v==='reach')return ['Reach','Awareness'].includes(a.objective);return ['Conversions','Sales','Leads'].includes(a.objective)}
-function filteredAds(d){const brandMatch=a=>brandFilter.value==='all'||a.brand.toLowerCase().includes(brandFilter.value)||(brandFilter.value==='enotecca'&&['LaStella','Le Vieux Pin'].includes(a.brand));return d.ads.filter(a=>brandMatch(a)&&(platformFilter.value==='all'||a.platform===platformFilter.value)&&campaignMatches(a))}
+function filteredAds(d){const brandMatch=a=>brandFilter.value==='all'||a.brand.toLowerCase().includes(brandFilter.value)||(brandFilter.value==='las'&&a.brand==='LaStella')||(brandFilter.value==='lvp'&&a.brand==='Le Vieux Pin')||(brandFilter.value==='enotecca'&&['LaStella','Le Vieux Pin'].includes(a.brand));return d.ads.filter(a=>brandMatch(a)&&(platformFilter.value==='all'||a.platform===platformFilter.value)&&campaignMatches(a))}
 function thumb(a){const initials=a.brand==='LaStella'?'LAS':a.brand==='Le Vieux Pin'?'LVP':a.brand==='ThriveBox'?'TB':a.brand.includes('Fraser')?'FR':'ED';return `<div class="ad-thumb ${a.platform}" aria-label="Creative preview placeholder"><span>${initials}</span><small>${a.format}</small></div>`}
 function renderBreakdown(){const d=datasets[client],mode=breakdownFilter.value,pick=adFilter.value;let base=filteredAds(d);const titles={ads:'Individual ad results',campaign:'Full campaign results',objective:'Performance by objective',media:'Performance by media'};breakdownTitle.textContent=titles[mode];itemFilterLabel.style.display=mode==='ads'?'grid':'none';
   if(mode==='ads'){const rows=base.filter((_,i)=>pick==='all'||String(i)===pick);performanceHead.innerHTML='<tr><th>Preview</th><th>Ad</th><th>Brand</th><th>Platform</th><th>Format</th><th>Spend</th><th>Impressions</th><th>CTR</th><th>Conversions</th><th>Cost / conv.</th></tr>';adRows.innerHTML=rows.map(a=>`<tr><td>${thumb(a)}</td><td>${a.name}</td><td>${a.brand}</td><td><span class="platform-pill ${a.platform}">${platformName(a.platform)}</span></td><td>${a.format}</td><td>${money(a.spend)}</td><td>${a.impressions.toLocaleString()}</td><td>${a.ctr.toFixed(2)}%</td><td>${a.conv}</td><td>${a.conv?'CA$'+(a.spend/a.conv).toFixed(2):'—'}</td></tr>`).join('');return}
   const key=mode==='campaign'?'campaign':mode==='objective'?'objective':'media',rows=aggregate(base,key);performanceHead.innerHTML=`<tr><th>${mode==='campaign'?'Campaign':mode==='objective'?'Objective':'Media'}</th><th>Brand</th><th>Spend</th><th>Impressions</th><th>CTR</th><th>Conversions</th><th>Cost / conv.</th></tr>`;adRows.innerHTML=rows.map(a=>`<tr><td>${a.name}</td><td>${a.brand}</td><td>${money(a.spend)}</td><td>${a.impressions.toLocaleString()}</td><td>${a.ctr.toFixed(2)}%</td><td>${a.conv}</td><td>${a.conv?'CA$'+(a.spend/a.conv).toFixed(2):'—'}</td></tr>`).join('')}
 function renderDevices(){const devices=audienceExtras[client].devices;devicePerformance.innerHTML=devices.map(x=>`<div class="device-row"><span>${x[0]}</span><div class="device-bar"><i style="width:${x[1]}%"></i></div><strong>${x[1]}%</strong></div>`).join('')}
-function renderSetup(){const setups={portfolio:[['Campaigns in view','24'],['Clients','3'],['Media','Meta · Google'],['Business sources','3'],['Reporting level','Portfolio + client'],['Attribution','Platform + verified']],lka:[['Active campaigns','6'],['Primary objective','Registrations'],['Locations','Fraser · Edgemont'],['Media','Meta · Google'],['Conversion source','Jumbula'],['Attribution','Platform + Jumbula']],enotecca:[['Active campaigns','8'],['Primary objective','Wine Society sales'],['Locations','QC · ON · AB · SK'],['Media','Meta · Google'],['Conversion source','Commerce7 pending'],['Attribution','Platform-only until connected']],thrivebox:[['Active campaigns','1'],['Primary objective','Winter box orders'],['Market','Canada'],['Media','Meta Ads'],['Conversion source','Sales platform'],['Attribution','Pending verification']]};setupSummary.innerHTML=setups[client].map(x=>`<div class="setup-item"><small>${x[0]}</small><strong>${x[1]}</strong></div>`).join('')}
-function renderTrend(){const mode=trendBreakdown.value,paths={day:['M0 188 L103 160 L206 177 L309 124 L412 145 L515 92 L618 111 L720 55','M0 203 L103 189 L206 171 L309 181 L412 142 L515 133 L618 97 L720 82'],media:['M0 182 L103 168 L206 135 L309 151 L412 103 L515 116 L618 73 L720 61','M0 204 L103 194 L206 180 L309 161 L412 154 L515 121 L618 132 L720 96'],spend:['M0 196 L103 172 L206 158 L309 143 L412 122 L515 87 L618 69 L720 43','M0 207 L103 201 L206 183 L309 176 L412 151 L515 139 L618 112 L720 101']};trendMain.setAttribute('d',paths[mode][0]);trendSecondary.setAttribute('d',paths[mode][1]);trendArea.setAttribute('d',paths[mode][0]+' L720 218 L0 218 Z');trendTitle.textContent=mode==='day'?'Results per day':mode==='media'?'Daily results by media':'Daily spend trend';legendMain.textContent=mode==='media'?'Meta Ads':mode==='spend'?'Spend':'Conversions';legendSecondary.textContent=mode==='media'?'Google Ads':mode==='spend'?'Previous spend':'Daily trend'}
-function renderMetricRibbon(base){const impressions=base.reduce((s,a)=>s+a.impressions,0),clicks=Math.round(base.reduce((s,a)=>s+a.impressions*a.ctr/100,0)),spendValue=base.reduce((s,a)=>s+a.spend,0),results=base.reduce((s,a)=>s+a.conv,0),ctr=impressions?clicks/impressions*100:0;const metrics=[['Impressions',impressions.toLocaleString()],['Reach',Math.round(impressions*.72).toLocaleString()],['Clicks',clicks.toLocaleString()],['CTR',ctr.toFixed(2)+'%'],['Frequency',(impressions/Math.max(impressions*.72,1)).toFixed(2)],['Cost / click',clicks?'CA$'+(spendValue/clicks).toFixed(2):'—']];metricRibbon.innerHTML=metrics.map(x=>`<div><small>${x[0]}</small><strong>${x[1]}</strong></div>`).join('')}
+function renderSetup(){setupSummary.innerHTML=[['Reporting','Google + Meta APIs'],['Account mapping',client==='lka'?'One Meta account · two locations':'LaStella · Le Vieux Pin'],['Business source',client==='lka'?'Jumbula pending':'Commerce7 pending'],['Attribution','Platform-reported, not deduplicated']].map(x=>'<div class="setup-item"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join('')}
+function renderTrend(){const d=datasets[client],map=new Map();for(const day of [...(d.liveDailyGoogle||[]),...(d.liveDailyMeta||[])]){const current=map.get(day.date)||{date:day.date,spend:0,conversions:0};current.spend+=day.spend;current.conversions+=day.conversions;map.set(day.date,current)}const daily=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));const path=key=>{const max=Math.max(1,...daily.map(d=>d[key]));return daily.map((d,i)=>(i?'L':'M')+(daily.length===1?360:i*720/(daily.length-1))+' '+(210-d[key]/max*165)).join(' ')};trendMain.setAttribute('d',path('conversions'));trendSecondary.setAttribute('d',path('spend'));trendArea.setAttribute('d','');trendTitle.textContent=daily.length?'Daily platform conversions and spend':'Waiting for live daily data';legendMain.textContent='Platform conversions';legendSecondary.textContent='Spend (separate scale)';document.querySelector('.x-labels').innerHTML=daily.length?[daily[0].date,daily[daily.length-1].date].map(x=>'<span>'+x+'</span>').join(''):''}
+function renderMetricRibbon(base){const impressions=base.reduce((s,a)=>s+a.impressions,0),clicks=base.reduce((s,a)=>s+(a.clicks||0),0),spendValue=base.reduce((s,a)=>s+a.spend,0);const metrics=[['Impressions',impressions.toLocaleString()],['Reach','—'],['Clicks',clicks.toLocaleString()],['CTR',impressions?(clicks/impressions*100).toFixed(2)+'%':'—'],['Frequency','—'],['Cost / click',clicks?'CA$'+(spendValue/clicks).toFixed(2):'—']];metricRibbon.innerHTML=metrics.map(x=>'<div><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join('')}
 function renderDeepDive(base){const extra=audienceExtras[client],impressions=base.reduce((s,a)=>s+a.impressions,0),clicks=Math.round(base.reduce((s,a)=>s+a.impressions*a.ctr/100,0)),results=base.reduce((s,a)=>s+a.conv,0);const funnel=[['Impressions',impressions],['Clicks',clicks],['Platform results',results],['Verified results',datasets[client].externalCount]];funnelChart.innerHTML=funnel.map((x,i)=>`<div style="width:${100-i*14}%"><span>${x[0]}</span><strong>${x[1]==null?'—':x[1].toLocaleString()}</strong></div>`).join('');budgetPacing.innerHTML=extra.pacing.map(x=>`<div><div><span>${x[0]}</span><strong>${x[1]}%</strong></div><div class="pacing-track"><i class="${x[1]>95?'over':''}" style="width:${Math.min(x[1],100)}%"></i></div><small>${x[1]>95?'Watch overspend':x[1]<75?'Below planned pace':'On track'}</small></div>`).join('');placementPerformance.innerHTML=extra.placements.map((x,i)=>`<div><span><i>${i+1}</i>${x[0]}</span><strong>${x[1]}%</strong></div>`).join('')}
 function renderCreativeLeaderboard(base){const top=[...base].sort((a,b)=>b.conv-a.conv||b.ctr-a.ctr).slice(0,3);creativeLeaderboard.innerHTML=top.map((a,i)=>`<article><div class="leaderboard-visual ${a.image?'live-ad ':''}${a.brand.includes('Fraser')?'lka-fr':a.brand.includes('Edgemont')?'lka-ed':a.brand==='LaStella'?'las':a.brand==='Le Vieux Pin'?'lvp':'thrive'}">${a.image?`<img src="${a.image}" alt="${a.name.replaceAll('&','&amp;').replaceAll('"','&quot;')} creative" loading="lazy" referrerpolicy="no-referrer">`:''}<span>#${i+1}</span><small>${a.brand}</small></div><div class="leaderboard-copy"><p>${a.name}</p><div><span>${a.format} · ${platformName(a.platform)}</span><strong>${Number(a.conv.toFixed(2))} results</strong></div><div class="leaderboard-stats"><span>${money(a.spend)} spend</span><span>${a.ctr.toFixed(2)}% CTR</span><span>${a.conv?'CA$'+(a.spend/a.conv).toFixed(2)+' CPR':'No conversion'}</span></div></div></article>`).join('')||'<div class="connection-empty">No ads match the selected filters.</div>'}
-function renderCampaignHealth(base){const campaigns=aggregate(base,'campaign').sort((a,b)=>b.spend-a.spend);campaignHealthRows.innerHTML=campaigns.map((a,i)=>{const paused=a.conv===0,status=paused?'Paused':'Active',pace=[82,91,74,98,68][i%5],recommendation=paused?'Use for traffic/awareness; replace in conversion campaigns':a.ctr>2.5?'Scale carefully and protect efficiency':a.conv>15?'Refresh creative while maintaining delivery':'Monitor and test a stronger benefit-led message';return `<tr><td>${a.name}</td><td>${a.brand}</td><td><span class="status-pill ${paused?'paused':''}">${status}</span></td><td>${base.find(x=>x.campaign===a.name)?.objective||'Mixed'}</td><td>${money(a.spend)}</td><td>${a.conv}</td><td>${a.conv?'CA$'+(a.spend/a.conv).toFixed(2):'—'}</td><td>${pace}%</td><td class="recommendation-cell">${recommendation}</td></tr>`}).join('')}
+function renderCampaignHealth(base){campaignHealthRows.innerHTML=aggregate(base,'campaign').sort((a,b)=>b.spend-a.spend).map(a=>{const status=base.find(x=>x.campaign===a.name)?.status||'Unavailable';return '<tr><td>'+a.name+'</td><td>'+a.brand+'</td><td>'+status+'</td><td>'+(base.find(x=>x.campaign===a.name)?.objective||'Mixed')+'</td><td>'+money(a.spend)+'</td><td>'+a.conv+'</td><td>'+(a.conv?'CA$'+(a.spend/a.conv).toFixed(2):'—')+'</td><td>—</td><td>Review live performance before changing delivery.</td></tr>'}).join('')}
 function renderDemographicExtras(){const extra=audienceExtras[client];genderPerformance.innerHTML=extra.gender.map(x=>`<div><span>${x[0]}</span><strong>${x[1]}%</strong><small>${x[2]} cost / result</small></div>`).join('');languagePerformance.innerHTML=bars(extra.languages);audienceTypePerformance.innerHTML=extra.types.map(x=>`<div><small>${x[0]}</small><strong>${x[1]}%</strong><span>${x[2].toFixed(2)}% CTR</span></div>`).join('')}
 function renderBusiness(){
   const b=businessData[client],view=commerceView.value;
@@ -52,7 +61,9 @@ function renderBusiness(){
   socialHead.innerHTML=`<tr><th>Social action</th>${b.locations.map(x=>`<th>${x}</th>`).join('')}</tr>`;
   socialRows.innerHTML=b.social.map(x=>`<tr><td>${x[0]}</td>${x.slice(1).map(v=>`<td>${typeof v==='number'?v.toLocaleString():v}</td>`).join('')}</tr>`).join('');
   socialInsight.textContent=client==='lka'?'Paid campaigns generated strong engagement across both locations. Treat engagement as a supporting indicator while optimizing toward registrations and cost per purchase.':client==='portfolio'?'Use engagement as context, then prioritize verified registrations, subscriptions and purchases for final optimization decisions.':'Social growth, engagement and verified sales will appear here once live sources are connected.';
-  creativeInsight.innerHTML=client==='lka'?`<div class="winning-ads"><article><div class="ad-crop edgemont" role="img" aria-label="Best-performing Edgemont video ad"></div><div><span>Edgemont</span><strong>2 purchases</strong></div></article><article><div class="ad-crop fraser" role="img" aria-label="Best-performing Fraser video ad"></div><div><span>Fraser</span><strong>7 purchases</strong></div></article></div><div class="quality-row"><span>Meta quality ranking</span><strong>Average</strong></div>`:`<div class="creative-empty"><span>${b.creative[0][0]}</span><strong>${b.creative[0][1]}</strong><small>${b.creative[1][1]}</small></div>`;
+  const winners=datasets[client].ads.filter(a=>a.platform==='meta').sort((a,b)=>b.conv-a.conv).slice(0,2);
+  creativeInsight.innerHTML=winners.length?winners.map(a=>'<div class="creative-empty"><span>'+a.brand+'</span><strong>'+a.name+'</strong><small>'+a.conv+' Meta-reported conversion events</small></div>').join(''):'Live creative results will appear after Meta data loads.';
+
   pmaxInsights.innerHTML=b.pmax.map(x=>`<div><h3>${x[0]}</h3><p>${x[1]}</p></div>`).join('');
 }
 function render(){
@@ -71,15 +82,15 @@ function localDateValue(date){const offset=date.getTimezoneOffset()*60000;return
 function validateDateRange(){const valid=Boolean(startDate.value&&endDate.value&&startDate.value<=endDate.value);dateRangeError.textContent=valid?'':'Choose an end date on or after the start date.';applyDates.disabled=!valid;return valid}
 datePreset.onchange=()=>{if(datePreset.value==='custom')return;const end=new Date(),start=new Date(end);if(datePreset.value==='mtd')start.setDate(1);else if(datePreset.value==='previous'){start.setMonth(start.getMonth()-1,1);end.setDate(0)}else start.setDate(end.getDate()-Number(datePreset.value)+1);startDate.value=localDateValue(start);endDate.value=localDateValue(end);validateDateRange()};
 [startDate,endDate].forEach(input=>input.onchange=()=>{datePreset.value='custom';validateDateRange()});
-applyDates.onclick=()=>{if(!validateDateRange())return;periodLabel.textContent=new Date(startDate.value+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})+'–'+new Date(endDate.value+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});render();maybeLoadGooglePerformance(true);maybeLoadMetaPerformance(true)};
+applyDates.onclick=()=>{if(!validateDateRange())return;if(googleLiveLoading.size||metaLiveLoading.size){dateRangeError.textContent='Please wait for the current report to finish loading.';return;}googleLiveState[client]=null;metaLiveState[client]=null;datasets[client].ads=[];datasets[client].sources=datasets[client].sources.map(([name])=>[name,null]);datasets[client].ages=[];datasets[client].regions=[];audienceExtras[client].devices=[];audienceExtras[client].gender=[];datasets[client].liveDailyGoogle=[];datasets[client].liveDailyMeta=[];datasets[client].summary='Loading selected dates…';periodLabel.textContent=new Date(startDate.value+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})+'–'+new Date(endDate.value+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});render();maybeLoadGooglePerformance(true);maybeLoadMetaPerformance(true)};
 resetFilters.onclick=()=>{platformFilter.value=campaignFilter.value=brandFilter.value='all';metricFilter.value='results';render()};saveComments.onclick=()=>{localStorage.setItem('comments-'+client,comments.value);saveState.textContent='Saved just now'};previousPeriod.onclick=()=>{periodIndex=Math.max(0,periodIndex-1);periodLabel.textContent=periods[periodIndex]};nextPeriod.onclick=()=>{periodIndex=Math.min(2,periodIndex+1);periodLabel.textContent=periods[periodIndex]};render();
 
 const GOOGLE_CONNECTOR='https://pb-ads-google-connector-r6hihlwcra-uc.a.run.app';
 const GOOGLE_CONNECTOR_ORIGIN=new URL(GOOGLE_CONNECTOR).origin;
 const GOOGLE_SESSION_KEY='pb-google-ads-session';
 const GOOGLE_ACCOUNT_MAP={lka:{id:'7928636633',name:'LKA – North Vancouver'},enotecca:{id:'1099466129',name:'Enotecca Winery & Resorts'}};
-let googleSession=localStorage.getItem(GOOGLE_SESSION_KEY)||sessionStorage.getItem(GOOGLE_SESSION_KEY)||'';
-if(googleSession)localStorage.setItem(GOOGLE_SESSION_KEY,googleSession);
+const googleSession='server-managed';
+// Google credentials stay on the reporting server, not in browser storage.
 const googleLiveState={lka:null,enotecca:null};
 const googleLiveLoading=new Set();
 let googleAccessibleIds=[];
@@ -88,7 +99,7 @@ function setGoogleConnectionState(state,detail){
   googleConnectionStatus.textContent=state;
   googleConnectionDetail.textContent=detail;
   googleConnectionStatus.classList.toggle('connected',state==='Connected');
-  connectGoogleAds.textContent=state==='Connected'?'Reconnect Google Ads':'Connect Google Ads';
+  connectGoogleAds.hidden=true;loadGoogleAccounts.hidden=true;googleManagerSelect.hidden=true;dashboardMode.textContent='Live API reporting';
 }
 
 function accountCard(target){
@@ -100,7 +111,7 @@ function renderGoogleIntegrationForClient(){
   const supported=client==='portfolio'||Boolean(GOOGLE_ACCOUNT_MAP[client]);
   googleIntegration.hidden=!supported;
   if(!supported)return;
-  googleAccountPanel.hidden=!googleSession;
+  googleAccountPanel.hidden=true;
   if(!googleSession)return;
   const targets=client==='portfolio'?['lka','enotecca']:[client];
   googleClientList.innerHTML=targets.map(accountCard).join('');
@@ -113,7 +124,7 @@ function renderGoogleIntegrationForClient(){
   }
 }
 
-function googleAuthHeaders(){return googleSession?{Authorization:`Bearer ${googleSession}`}:{}}
+function googleAuthHeaders(){return {}}
 
 function googleRows(data){return (Array.isArray(data)?data:[data]).flatMap(batch=>batch?.results||[])}
 function channelLabel(value){return {SEARCH:'Search',PERFORMANCE_MAX:'PMax',DISPLAY:'Display',VIDEO:'Video',SHOPPING:'Shopping',DISCOVERY:'Demand Gen'}[value]||String(value||'Other').replaceAll('_',' ')}
@@ -132,6 +143,7 @@ function normalizeGooglePerformance(target,data){
 }
 
 function syncGoogleDataset(target,live){
+  datasets[target].liveDailyGoogle=live.daily;
   datasets[target].ads=[...datasets[target].ads.filter(item=>item.platform!=='google'),...live.ads];
   const source=datasets[target].sources.find(item=>item[0]==='Google Ads');if(source)source[1]=Math.round(live.totals.conversions*100)/100;
   datasets.portfolio.ads=[...datasets.lka.ads,...datasets.enotecca.ads,...datasets.thrivebox.ads];
@@ -149,23 +161,19 @@ function livePath(values){
   return values.map((value,index)=>`${index?'L':'M'}${values.length===1?360:index*step} ${210-(value/max)*165}`).join(' ');
 }
 
-function renderLiveGoogleTrend(){
-  const daily=liveDailyForView();if(!daily.length||trendBreakdown.value!=='day')return;
-  const conversions=livePath(daily.map(day=>day.conversions)),spendPath=livePath(daily.map(day=>day.spend));trendMain.setAttribute('d',conversions);trendSecondary.setAttribute('d',spendPath);trendArea.setAttribute('d',conversions+' L720 218 L0 218 Z');trendTitle.textContent='Live Google Ads results per day';legendMain.textContent='Conversions';legendSecondary.textContent='Spend trend';
-  const indexes=[0,.25,.5,.75,1].map(ratio=>Math.round((daily.length-1)*ratio)),labels=indexes.map(index=>new Date(daily[index].date+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'}));document.querySelector('.x-labels').innerHTML=labels.map(label=>`<span>${label}</span>`).join('');
-}
+function renderLiveGoogleTrend(){renderTrend()}
 
 async function loadGooglePerformance(target,{force=false}={}){
   const account=GOOGLE_ACCOUNT_MAP[target];if(!googleSession||!account||googleLiveLoading.has(target)||googleLiveState[target]&&!force)return;
   googleLiveLoading.add(target);setGoogleConnectionState('Loading live data…',`Retrieving ${account.name} for ${startDate.value} to ${endDate.value}.`);
   try{
-    const params=new URLSearchParams({loginCustomerId:account.id,customerId:account.id,startDate:startDate.value,endDate:endDate.value}),response=await fetch(`${GOOGLE_CONNECTOR}/api/google-ads/performance?${params}`,{headers:googleAuthHeaders()}),data=await response.json();
+    const requestedDates=startDate.value+'|'+endDate.value;const params=new URLSearchParams({loginCustomerId:account.id,customerId:account.id,startDate:startDate.value,endDate:endDate.value}),response=await fetch(`/api/google-performance?${params}`,{headers:googleAuthHeaders()}),data=await response.json();
     if(!response.ok)throw new Error(data.error||`Google Ads performance could not be loaded for ${account.name}.`);
-    const live=normalizeGooglePerformance(target,data);googleLiveState[target]=live;syncGoogleDataset(target,live);
+    if(requestedDates!==startDate.value+'|'+endDate.value)return;const live=normalizeGooglePerformance(target,data);googleLiveState[target]=live;syncGoogleDataset(target,live);
     if(client===target||client==='portfolio'){render();renderLiveGoogleTrend();renderGoogleIntegrationForClient()}
-    document.querySelector('.notice strong').textContent='Google Ads live';document.querySelector('.notice span').textContent='Google campaign metrics are live for the selected dates. Meta and business-platform sections remain in preview until connected.';
+    document.querySelector('.notice strong').textContent='Google Ads live';document.querySelector('.notice span').textContent='Google campaign metrics are live for the selected dates. Business-platform results require a separate verified source.';
     setGoogleConnectionState('Connected',`${account.name}: ${live.ads.length} campaigns · ${money(live.totals.spend)} spend · ${live.totals.conversions.toFixed(2)} conversions.`);
-  }catch(error){setGoogleConnectionState('Connected',`${account.name} is mapped, but live performance returned: ${error.message}`)}finally{googleLiveLoading.delete(target)}
+  }catch(error){setGoogleConnectionState('Unavailable',`${account.name}: ${error.message}`);document.querySelector('.notice strong').textContent='Google data unavailable';document.querySelector('.notice span').textContent=error.message}finally{googleLiveLoading.delete(target)}
 }
 
 async function maybeLoadGooglePerformance(force=false){
@@ -174,59 +182,8 @@ async function maybeLoadGooglePerformance(force=false){
   if(client==='portfolio'&&googleLiveState.lka&&googleLiveState.enotecca){render();renderLiveGoogleTrend();setGoogleConnectionState('Connected',`Live Google data loaded: ${GOOGLE_ACCOUNT_MAP.lka.name} and ${GOOGLE_ACCOUNT_MAP.enotecca.name}.`)}
 }
 
-async function discoverGoogleCustomers(){
-  if(!googleSession)return;
-  setGoogleConnectionState('Checking access…','Verifying the Google Ads accounts available to this Polar Bear login.');
-  try{
-    const response=await fetch(`${GOOGLE_CONNECTOR}/api/google-ads/accessible-customers`,{headers:googleAuthHeaders()});
-    const data=await response.json();
-    if(!response.ok)throw new Error(data.error||'Google Ads access could not be verified.');
-    const ids=(data.resourceNames||[]).map(name=>String(name).replace('customers/',''));googleAccessibleIds=ids;
-    googleManagerSelect.innerHTML='<option value="">Select an account</option>'+ids.map(id=>`<option value="${id}">${id.replace(/(\d{3})(\d{3})(\d{4})/,'$1-$2-$3')}</option>`).join('');
-    googleAccountPanel.hidden=false;
-    renderGoogleIntegrationForClient();
-    setGoogleConnectionState('Connected',ids.length?'Google authorization is active. Loading mapped account performance…':'Authorization is active, but this Google login returned no Ads accounts.');
-    maybeLoadGooglePerformance();
-  }catch(error){
-    sessionStorage.removeItem(GOOGLE_SESSION_KEY);localStorage.removeItem(GOOGLE_SESSION_KEY);googleSession='';googleAccountPanel.hidden=true;
-    setGoogleConnectionState('Reconnect required',error.message);
-  }
-}
-
-connectGoogleAds.onclick=()=>{
-  const popup=window.open(`${GOOGLE_CONNECTOR}/auth/google/start`,'pbGoogleAds','popup=yes,width=620,height=760');
-  if(!popup)setGoogleConnectionState('Popup blocked','Allow popups for this dashboard, then try connecting again.');
-};
-
-window.addEventListener('message',event=>{
-  if(event.origin!==GOOGLE_CONNECTOR_ORIGIN||event.data?.type!=='google-ads-connected'||!event.data?.token)return;
-  googleSession=event.data.token;sessionStorage.setItem(GOOGLE_SESSION_KEY,googleSession);localStorage.setItem(GOOGLE_SESSION_KEY,googleSession);
-  setGoogleConnectionState('Connected',`Authorized as ${event.data.email}. Discovering accessible accounts…`);
-  discoverGoogleCustomers();
-});
-
-loadGoogleAccounts.onclick=async()=>{
-  const loginCustomerId=googleManagerSelect.value;
-  if(!loginCustomerId){googleAccountResult.textContent='Select the manager account first.';return}
-  googleAccountResult.textContent='Loading linked accounts…';
-  try{
-    const response=await fetch(`${GOOGLE_CONNECTOR}/api/google-ads/accounts?loginCustomerId=${encodeURIComponent(loginCustomerId)}`,{headers:googleAuthHeaders()});
-    const data=await response.json();
-    if(!response.ok)throw new Error(data.error||'Linked accounts could not be loaded.');
-    const rows=Array.isArray(data)?data.flatMap(batch=>batch.results||[]):data.results||[];
-    const accounts=rows.map(row=>row.customerClient).filter(Boolean),clients=accounts.filter(account=>!account.manager);
-    googleClientList.innerHTML=accounts.map(account=>{const rawId=String(account.clientCustomer||'').replace('customers/',''),displayId=rawId.replace(/(\d{3})(\d{3})(\d{4})/,'$1-$2-$3'),name=account.descriptiveName||'Unnamed Google Ads account',kind=account.manager?'Manager account':'Client account';return `<article><div><strong>${name}</strong><span>${displayId||'ID unavailable'}</span></div><div class="google-account-meta"><span>${kind}</span><span>${account.status||'Status unavailable'}</span><span>${account.currencyCode||'Currency unavailable'}</span><span>${account.timeZone||''}</span></div></article>`}).join('');
-    googleAccountResult.textContent=clients.length?`${clients.length} client account${clients.length===1?'':'s'} ready to map into the dashboard.`:'The selected account did not return client accounts. Try another accessible account.';
-  }catch(error){googleAccountResult.textContent=error.message}
-};
-
-googleManagerSelect.onchange=()=>{
-  googleClientList.innerHTML='';
-  googleAccountResult.textContent=googleManagerSelect.value?'Click “Load linked accounts” to inspect this account.':'Select an account to inspect it.';
-};
-
 const META_ACCOUNT_MAP={
-  lka:[{id:'1462400408056476',brand:'LKA Fraser'},{id:'4250540271898801',brand:'LKA Edgemont'}],
+  lka:[{id:'4250540271898801',brand:'LKA North Vancouver'}],
   enotecca:[{id:'913601552530100',brand:'LaStella'},{id:'2880495615400590',brand:'Le Vieux Pin'}]
 };
 const metaLiveState={lka:null,enotecca:null};
@@ -242,10 +199,17 @@ function metaRevenue(row){return metaActionValue(row.action_values,['offsite_con
 function metaCreativeImage(creative){const spec=creative?.object_story_spec||{};return creative?.image_url||creative?.thumbnail_url||spec?.video_data?.image_url||spec?.link_data?.picture||spec?.link_data?.child_attachments?.[0]?.picture||''}
 function metaCreativeFormat(creative){const spec=creative?.object_story_spec||{};if(spec.video_data)return 'Video';if((spec.link_data?.child_attachments||[]).length>1)return 'Carousel';return 'Single image'}
 
+function lkaCampaignBrand(id,name){
+  
+  
+  if(/fraser/i.test(name||''))return 'LKA Fraser';
+  if(/edgemont/i.test(name||''))return 'LKA Edgemont';
+  return 'LKA – Unassigned location';
+}
 function normalizeMetaAccount(account,payload){
   const metadata=new Map((payload.ads||[]).map(item=>[String(item.id),item])),byAd=new Map(),daily=new Map();
   (payload.insights||[]).forEach(row=>{
-    const key=String(row.ad_id||row.ad_name||'unknown'),meta=metadata.get(key)||{},campaign=meta.campaign||{},current=byAd.get(key)||{id:key,name:row.ad_name||meta.name||`Ad ${key}`,brand:account.brand,platform:'meta',format:metaCreativeFormat(meta.creative),spend:0,ctr:0,conv:0,revenue:0,campaign:row.campaign_name||campaign.name||'Meta campaign',objective:row.objective||campaign.objective||'Results',impressions:0,clicks:0,status:meta.effective_status||meta.status||'UNKNOWN',image:metaCreativeImage(meta.creative),live:true};
+    const key=String(row.ad_id||row.ad_name||'unknown'),meta=metadata.get(key)||{},campaign=meta.campaign||{},current=byAd.get(key)||{id:key,name:row.ad_name||meta.name||`Ad ${key}`,brand:account.id==='4250540271898801'?lkaCampaignBrand(row.campaign_id,row.campaign_name||campaign.name):account.brand,platform:'meta',format:metaCreativeFormat(meta.creative),spend:0,ctr:0,conv:0,revenue:0,campaign:row.campaign_name||campaign.name||'Meta campaign',objective:row.objective||campaign.objective||'Results',impressions:0,clicks:0,status:meta.effective_status||meta.status||'UNKNOWN',image:metaCreativeImage(meta.creative),live:true};
     current.spend+=Number(row.spend||0);current.conv+=metaResults(row);current.revenue+=metaRevenue(row);current.impressions+=Number(row.impressions||0);current.clicks+=Number(row.inline_link_clicks||row.clicks||0);byAd.set(key,current);
     const date=row.date_start;if(date){const day=daily.get(date)||{date,spend:0,conversions:0,impressions:0,clicks:0};day.spend+=Number(row.spend||0);day.conversions+=metaResults(row);day.impressions+=Number(row.impressions||0);day.clicks+=Number(row.inline_link_clicks||row.clicks||0);daily.set(date,day)}
   });
@@ -264,15 +228,66 @@ function syncMetaAudiences(target,live){
   const regionTotals=new Map();live.regions.forEach(row=>{const name=row.region||'Unknown',current=regionTotals.get(name)||{spend:0,results:0};current.spend+=Number(row.spend||0);current.results+=metaBreakdownResults(row);regionTotals.set(name,current)});const regionAll=[...regionTotals.values()].reduce((s,x)=>s+x.results,0)||1;datasets[target].regions=[...regionTotals.entries()].sort((a,b)=>b[1].results-a[1].results).slice(0,12).map(([name,value])=>[name,value.spend,value.results,value.results?value.spend/value.results:0,Math.round(value.results/regionAll*100)]);
 }
 function syncMetaDataset(target,live){
+  datasets[target].liveDailyMeta=live.daily;
   datasets[target].ads=[...datasets[target].ads.filter(item=>item.platform!=='meta'),...live.ads];const source=datasets[target].sources.find(item=>item[0]==='Meta Ads');if(source)source[1]=Math.round(live.totals.conversions*100)/100;syncMetaAudiences(target,live);const googleConversions=googleLiveState[target]?.totals.conversions||0,totalResults=live.totals.conversions+googleConversions;datasets[target].summary=`${Number(totalResults.toFixed(2))} tracked conversion events in the selected reporting period.`;datasets[target].summaryText=target==='enotecca'?'Live results across LaStella and Le Vieux Pin. Meta conversions include tracked purchases or subscriptions; landing-page views are reported separately and are not counted as conversions.':'Live results across Fraser and Edgemont. Meta conversions include tracked purchases, registrations or leads; landing-page views are not counted as conversions.';datasets.portfolio.ads=[...datasets.lka.ads,...datasets.enotecca.ads,...datasets.thrivebox.ads];const portfolioMeta=datasets.portfolio.sources.find(item=>item[0]==='Meta Ads');if(portfolioMeta)portfolioMeta[1]=['lka','enotecca'].reduce((sum,key)=>sum+(metaLiveState[key]?.totals.conversions||0),0)
 }
 async function loadMetaPerformance(target,{force=false}={}){
   const accounts=META_ACCOUNT_MAP[target];if(!googleSession||!accounts||metaLiveLoading.has(target)||metaLiveState[target]&&!force)return;metaLiveLoading.add(target);document.querySelector('.notice strong').textContent='Loading Meta Ads…';document.querySelector('.notice span').textContent=`Retrieving live campaigns, ads, creatives and audience breakdowns for ${target==='lka'?'Little Kitchen Academy':'Enotecca'}.`;
-  try{const results=await Promise.all(accounts.map(async account=>{const params=new URLSearchParams({accountId:account.id,startDate:startDate.value,endDate:endDate.value}),response=await fetch(`${GOOGLE_CONNECTOR}/api/meta-ads/performance?${params}`,{headers:googleAuthHeaders()}),data=await response.json();if(!response.ok)throw new Error(data.error||`Meta data could not be loaded for ${account.brand}.`);return normalizeMetaAccount(account,data)}));const live=combineMetaResults(results);metaLiveState[target]=live;syncMetaDataset(target,live);if(client===target||client==='portfolio')render();document.querySelector('.notice strong').textContent='Google + Meta Ads live';document.querySelector('.notice span').textContent='Campaign, ad, creative and audience metrics are live for the selected dates. Landing-page views are excluded from the conversion total.';dashboardMode.textContent='Live dashboard';dashboardSources.textContent='Google + Meta data';
+  try{const requestedDates=startDate.value+'|'+endDate.value;const results=await Promise.all(accounts.map(async account=>{const params=new URLSearchParams({accountId:account.id,startDate:startDate.value,endDate:endDate.value}),response=await fetch(`/api/meta-performance?${params}`,{headers:googleAuthHeaders()}),data=await response.json();if(!response.ok)throw new Error(data.error||`Meta data could not be loaded for ${account.brand}.`);return normalizeMetaAccount(account,data)}));if(requestedDates!==startDate.value+'|'+endDate.value)return;const live=combineMetaResults(results);metaLiveState[target]=live;syncMetaDataset(target,live);if(client===target||client==='portfolio')render();document.querySelector('.notice strong').textContent='Google + Meta Ads live';document.querySelector('.notice span').textContent='Meta metrics loaded for the selected dates. Check the Google status separately. Platform conversions are not verified store orders or registrations.';dashboardMode.textContent='Live dashboard';dashboardSources.textContent='Google + Meta data';
   }catch(error){document.querySelector('.notice strong').textContent='Meta connection needs attention';document.querySelector('.notice span').textContent=error.message}finally{metaLiveLoading.delete(target)}
 }
 async function maybeLoadMetaPerformance(force=false){if(!googleSession||client==='thrivebox')return;const targets=client==='portfolio'?['lka','enotecca']:[client];await Promise.all(targets.filter(target=>META_ACCOUNT_MAP[target]).map(target=>loadMetaPerformance(target,{force})))}
 
+// Shared reporting UX, adapted from the ThriveBox dashboard.
+const uxEsc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uxNum=value=>value==null?'—':Number(value).toLocaleString('en-CA',{maximumFractionDigits:2});
+const uxMoney=value=>value==null?'—':Number(value).toLocaleString('en-CA',{style:'currency',currency:'CAD'});
+const uxLabel=()=>({results:'Platform results',purchases:'Meta purchases',subscriptions:'Meta subscriptions',registrations:'Meta registrations',leads:'Meta leads'}[metricFilter.value]||'Platform results');
+const uxCount=a=>metricFilter.value==='results'?a.conv:a.platform==='meta'?(a.events?.[metricFilter.value]??null):null;
+const uxSum=(rows,key)=>rows.every(r=>Number.isFinite(r[key]))?rows.reduce((s,r)=>s+r[key],0):null;
+const uxEvents=row=>({purchases:metaActionValue(row.actions,['offsite_conversion.fb_pixel_purchase','omni_purchase','purchase']),subscriptions:metaActionValue(row.actions,['offsite_conversion.fb_pixel_subscribe','subscribe']),registrations:metaActionValue(row.actions,['offsite_conversion.fb_pixel_complete_registration','complete_registration']),leads:metaActionValue(row.actions,['offsite_conversion.fb_pixel_lead','lead'])});
+const uxOriginalNormalize=normalizeMetaAccount;
+normalizeMetaAccount=function(account,payload){const live=uxOriginalNormalize(account,payload);const byId=new Map(live.ads.map(a=>[a.id,a]));for(const row of payload.insights||[]){const ad=byId.get(String(row.ad_id||row.ad_name||'unknown'));if(!ad)continue;ad.events??={purchases:0,subscriptions:0,registrations:0,leads:0};ad.daily??=[];const events=uxEvents(row);for(const k of Object.keys(events))ad.events[k]+=events[k];ad.daily.push({date:row.date_start,spend:Number(row.spend||0),results:metaResults(row),...events});ad.adSet=row.adset_name||ad.adSet||'Not supplied';}live.raw={...payload,brand:account.brand,accountId:account.id};return live;};
+const uxOriginalCombine=combineMetaResults;
+combineMetaResults=function(results){const live=uxOriginalCombine(results);live.accounts=results.map(r=>r.raw);return live;};
+function uxRows(){return filteredAds(datasets[client]).map(a=>({...a,count:uxCount(a)}));}
+function uxGroups(rows,key){const groups=new Map();for(const row of rows){const name=key(row);if(!groups.has(name))groups.set(name,[]);groups.get(name).push(row);}return [...groups].map(([name,items])=>({name,items,spend:uxSum(items,'spend'),impressions:uxSum(items,'impressions'),clicks:uxSum(items,'clicks'),count:uxSum(items,'count')}));}
+function uxTable(rows,label){return '<div class="table-wrap"><table><thead><tr><th>'+uxEsc(label)+'</th><th>'+uxLabel()+'</th><th>Spend</th><th>Cost / result</th></tr></thead><tbody>'+rows.sort((a,b)=>(b.count??-1)-(a.count??-1)).map(r=>'<tr><th scope="row">'+uxEsc(r.name)+'</th><td>'+uxNum(r.count)+'</td><td>'+uxMoney(r.spend)+'</td><td>'+uxMoney(r.count>0?r.spend/r.count:null)+'</td></tr>').join('')+'</tbody></table></div>';}
+function uxEmpty(message){return '<p class="footnote">'+uxEsc(message)+'</p>';}
+function uxImage(a){try{const u=new URL(a.image);if(u.protocol!=='https:'||!/(^|\.)(fbcdn\.net|fbsbx\.com|cdninstagram\.com)$/i.test(u.hostname))throw Error();return '<img width="100" loading="lazy" referrerpolicy="no-referrer" src="'+uxEsc(u.href)+'" alt="Ad creative" onerror="this.replaceWith(document.createTextNode(\'Preview unavailable\'))">';}catch{return '<span class="footnote">'+(a.platform==='google'?'Google campaign · creative not supplied':'Preview unavailable')+'</span>';}}
+renderBreakdown=function(){const mode=breakdownFilter.value,rows=uxRows();itemFilterLabel.style.display=mode==='ads'?'grid':'none';let groups=mode==='ads'?rows.map((a,i)=>({...a,name:a.name,key:String(i)})):uxGroups(rows,a=>mode==='campaign'?a.campaign:mode==='objective'?a.objective:platformName(a.platform));if(mode==='ads'&&adFilter.value!=='all')groups=groups.filter(a=>a.key===adFilter.value);const sort=document.getElementById('performanceSort').value,order=document.getElementById('performanceOrder').value;const value=a=>sort==='ctr'?(a.impressions>0?a.clicks/a.impressions:null):sort==='cpa'?(a.count>0?a.spend/a.count:null):a[sort];groups.sort((a,b)=>{const av=value(a),bv=value(b);return av==null?1:bv==null?-1:(order==='asc'?1:-1)*(av-bv)});breakdownTitle.textContent={ads:'Individual ad / campaign results',campaign:'Full campaign results',objective:'Performance by objective',media:'Performance by media'}[mode];performanceHead.innerHTML='<tr>'+(mode==='ads'?'<th>Preview</th>':'')+'<th>Name · ad set</th><th>Spend</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>'+uxLabel()+'</th><th>Cost / result</th></tr>';adRows.innerHTML=groups.map(a=>'<tr>'+(mode==='ads'?'<td>'+uxImage(a)+'</td>':'')+'<td>'+uxEsc(a.name)+(a.adSet?'<br><small>'+uxEsc(a.adSet)+'</small>':'')+'</td><td>'+uxMoney(a.spend)+'</td><td>'+uxNum(a.impressions)+'</td><td>'+uxNum(a.clicks)+'</td><td>'+(a.impressions>0?uxNum(a.clicks/a.impressions*100)+'%':'—')+'</td><td>'+uxNum(a.count)+'</td><td>'+uxMoney(a.count>0?a.spend/a.count:null)+'</td></tr>').join('')||'<tr><td colspan="8">No live results match these filters.</td></tr>';};
+renderTrend=function(){const rows=uxRows(),mode=trendBreakdown.value,key=mode==='spend'?'spend':'count';let daily=[];for(const a of rows){if(a.platform==='meta')daily.push(...(a.daily||[]).map(d=>({date:d.date,spend:d.spend,count:d[metricFilter.value]??null})));}if(metricFilter.value==='results'&&platformFilter.value!=='meta'&&brandFilter.value==='all'&&campaignFilter.value==='all')daily.push(...(datasets[client].liveDailyGoogle||[]).map(d=>({...d,count:d.conversions})));const groups=uxGroups(daily.filter(d=>d.date),d=>d.date).sort((a,b)=>a.name.localeCompare(b.name));const days=groups.map(d=>d.name),values=groups.map(d=>d[key]);const chart=document.querySelector('.trend-panel .chart-wrap');chart.style.display='block';chart.style.overflowX='auto';chart.innerHTML=tbDailyChart(days,values,mode==='spend');trendTitle.textContent=mode==='spend'?'Daily spend':uxLabel()+' per day';legendMain.textContent='Daily values · Google detail only available for unfiltered account totals';legendSecondary.parentElement.hidden=true;};
+function uxAudience(){const live=metaLiveState[client],accounts=(live?.accounts||[]).filter(a=>brandFilter.value==='all'||(brandFilter.value==='las'&&a.accountId==='913601552530100')||(brandFilter.value==='lvp'&&a.accountId==='2880495615400590'));const restricted=platformFilter.value==='google'||campaignFilter.value!=='all'||(client==='lka'&&brandFilter.value!=='all');const note=restricted?'This breakdown is account-level. Select all brands and campaigns with Meta enabled.':'No breakdown supplied by the reporting connection for these dates.';const get=k=>restricted?[]:accounts.flatMap(a=>Array.isArray(a[k])?a[k]:[]).map(row=>({...row,spend:Number(row.spend||0),count:metricFilter.value==='results'?metaResults(row):uxEvents(row)[metricFilter.value]}));for(const [element,source,field,label] of [[demographics,'demographics','age','Age group'],[genderPerformance,'demographics','gender','Gender'],[devicePerformance,'devices','impression_device','Device'],[placementPerformance,'placements','publisher_platform','Placement']]){const rows=get(source);element.className='tb-audience-table';element.innerHTML=rows.length?uxTable(uxGroups(rows,r=>source==='placements'?[r.publisher_platform,r.platform_position].filter(Boolean).join(' · '):r[field]||'Unknown'),label)+'<p class="footnote">Meta Ads · account-level breakdown. Results may differ from headline attribution totals.</p>':uxEmpty(note);}const adsets=uxRows().filter(a=>a.platform==='meta');segments.className='tb-audience-table';segments.innerHTML=adsets.length?uxTable(uxGroups(adsets,a=>a.adSet||'Not supplied'),'Ad set'):uxEmpty('No Meta ad-set results available.');segments.closest('article').querySelector('h2').textContent='Top segments · by ad set';const regions=get('regions');regionRows.closest('table').querySelector('thead').innerHTML='<tr><th>Region</th><th>Spend</th><th>'+uxLabel()+'</th><th>Cost / result</th></tr>';regionRows.innerHTML=uxGroups(regions,r=>r.region||'Unknown').map(r=>'<tr><td>'+uxEsc(r.name)+'</td><td>'+uxMoney(r.spend)+'</td><td>'+uxNum(r.count)+'</td><td>'+uxMoney(r.count>0?r.spend/r.count:null)+'</td></tr>').join('')||'<tr><td colspan="4">'+uxEsc(note)+'</td></tr>';const summaries=accounts.map(a=>({a,s:Array.isArray(a.accountSummary)&&a.accountSummary.length===1?a.accountSummary[0]:null}));const valid=summaries.length===1&&summaries[0].s?.date_start===startDate.value&&summaries[0].s?.date_stop===endDate.value&&!restricted;const cards=metricRibbon.querySelectorAll('strong');if(cards.length===6){cards[1].textContent=valid?uxNum(summaries[0].s.reach):'—';cards[4].textContent=valid?uxNum(summaries[0].s.frequency):'—';for(const i of [1,4]){const card=cards[i].parentElement;let note=card.querySelector('.period-note');if(!note){note=document.createElement('small');note.className='period-note';card.append(note);}note.textContent=valid?'Meta account · full selected period':'Period-level total unavailable';}} }
+const uxSummary=document.createElement('section');uxSummary.className='panel';uxSummary.style.marginBottom='18px';document.querySelector('.kpi-grid').before(uxSummary);
+function uxSummaryView(rows){uxSummary.innerHTML='<div class="panel-header"><div><p class="eyebrow">AUDIENCE SNAPSHOT</p><h2>Meta ad-set performance</h2></div></div>'+ (rows.length?uxTable(uxGroups(rows.filter(a=>a.platform==='meta'),a=>a.adSet||'Not supplied'),'Ad set'):uxEmpty('Waiting for Meta data.'))+'<p class="footnote">Actual ad-set names · no inferred targeting. Uses selected filters.</p>';}
+const uxOriginalRender=render;
+render=function(){uxOriginalRender();const rows=uxRows(),loaded=Boolean(metaLiveState[client]||googleLiveState[client]);spend.textContent=loaded?uxMoney(uxSum(rows,'spend')):'—';conversions.textContent=loaded?uxNum(uxSum(rows,'count')):'—';cpa.textContent=loaded&&uxSum(rows,'count')>0?uxMoney(uxSum(rows,'spend')/uxSum(rows,'count')):'—';summaryTitle.textContent=loaded?uxNum(uxSum(rows,'count'))+' '+uxLabel().toLowerCase():'Waiting for reporting sources';summaryText.textContent='Platform-attributed events are not verified orders or registrations. Missing sources are unavailable, not zero.';uxAudience();uxSummaryView(rows);const top=rows.filter(a=>a.platform==='meta'&&a.count>0).sort((a,b)=>b.count-a.count).slice(0,3);creativeLeaderboard.innerHTML=top.map((a,i)=>'<article><div class="leaderboard-visual">'+uxImage(a)+'</div><div class="leaderboard-copy"><p>#'+(i+1)+' · '+uxEsc(a.name)+'</p><small>'+uxEsc(a.adSet)+' · '+uxNum(a.count)+' '+uxLabel().toLowerCase()+'</small></div></article>').join('')||uxEmpty('No Meta creatives recorded the selected result.');const meta=rows.filter(a=>a.platform==='meta');budgetPacing.closest('article').querySelector('h2').textContent='Conversion summary';budgetPacing.className='tb-conversion-summary';budgetPacing.innerHTML=['purchases','subscriptions','registrations','leads'].map(k=>'<div><span>Meta '+k+'</span><strong>'+uxNum(metaLiveState[client]?meta.reduce((s,a)=>s+(a.events?.[k]||0),0):null)+'</strong></div>').join('');languagePerformance.innerHTML=uxEmpty('Language breakdown not supplied.');audienceTypePerformance.innerHTML=uxEmpty('Targeting types are not inferred from results. See actual ad-set segments.');socialInsight.textContent='Social growth is unavailable unless the reporting connection supplies page-level insights.';commerceKpis.innerHTML=uxEmpty(client==='lka'?'Jumbula connection pending.':'Commerce7 connection pending.');};
+metricFilter.innerHTML='<option value="results">Platform results</option><option value="purchases">Meta purchases</option><option value="subscriptions">Meta subscriptions</option><option value="registrations">Meta registrations</option><option value="leads">Meta leads</option>';
+trendBreakdown.innerHTML='<option value="results">Selected results</option><option value="spend">Spend</option>';
+const uxSort=document.createElement('label');uxSort.className='inline-select';uxSort.innerHTML='Sort by<select id="performanceSort"><option value="count">Results</option><option value="spend">Spend</option><option value="impressions">Impressions</option><option value="clicks">Clicks</option><option value="ctr">CTR</option><option value="cpa">Cost / result</option></select>';
+const uxOrder=document.createElement('label');uxOrder.className='inline-select';uxOrder.innerHTML='Order<select id="performanceOrder"><option value="desc">Highest to lowest</option><option value="asc">Lowest to highest</option></select>';itemFilterLabel.parentElement.append(uxSort,uxOrder);uxSort.querySelector('select').onchange=renderBreakdown;uxOrder.querySelector('select').onchange=renderBreakdown;
+previousPeriod.hidden=true;nextPeriod.hidden=true;document.querySelector('.period small')?.remove();
+
+const tbNum=uxNum,tbMoney=uxMoney,tbEsc=uxEsc;
+function tbDailyChart(days,values,isSpend) {
+  const valid=days.length>0&&values.every(Number.isFinite);
+  const highest=valid?Math.max(...values):0;
+  const rough=Math.max(highest,1)/3;
+  const power=10**Math.floor(Math.log10(rough));
+  const unit=[1,2,2.5,5,10].find(n=>n*power>=rough)*power;
+  const step=isSpend?unit:Math.max(1,Math.ceil(unit));
+  const ceiling=step*3;
+  const width=Math.max(760,days.length*(isSpend?95:70)+100);
+  const x=i=>days.length===1?(78+width-28)/2:78+i*(width-106)/(days.length-1);
+  const y=value=>218-value/ceiling*198;
+  const format=value=>isSpend?tbMoney(value):tbNum(value);
+  const grid=[0,1,2,3].map(i=>{const value=i*step;return `<line x1="78" x2="${width-28}" y1="${y(value)}" y2="${y(value)}" stroke="#e9edf3"/><text x="66" y="${y(value)+4}" text-anchor="end" fill="#667085" font-size="12">${tbEsc(format(value))}</text>`}).join('');
+  const path=valid?values.map((value,i)=>`${i?'L':'M'}${x(i)} ${y(value)}`).join(' '):'';
+  const points=valid?values.map((value,i)=>`<g><title>${days[i]}: ${tbEsc(format(value))}</title><circle cx="${x(i)}" cy="${y(value)}" r="4" fill="#ff9925"/><text x="${x(i)}" y="${y(value)-12}" text-anchor="${i===0&&days.length>1?'start':i===days.length-1&&days.length>1?'end':'middle'}" fill="#333" font-size="12" font-weight="600" stroke="white" stroke-width="4" paint-order="stroke">${tbEsc(format(value))}</text><text x="${x(i)}" y="247" text-anchor="middle" fill="#667085" font-size="11">${days[i].slice(5)}</text></g>`).join(''):'';
+  return `<svg role="img" aria-label="${tbEsc(days.map((day,i)=>day+': '+format(values[i])).join('; ')||'No daily data')}" viewBox="0 0 ${width} 266" style="width:100%;min-width:${width}px;height:266px"><g>${grid}</g><path id="trendMain" d="${path}" fill="none" stroke="#ff9925" stroke-width="3" stroke-linejoin="round"/><path id="trendSecondary" d=""/><path id="trendArea" d=""/>${points}</svg>`;
+}
+
+render();
 if(startDate.value==='2026-08-01'&&endDate.value==='2026-08-31'){const end=new Date(),start=new Date(end);start.setDate(end.getDate()-29);startDate.value=localDateValue(start);endDate.value=localDateValue(end);datePreset.value='30';periodLabel.textContent=start.toLocaleDateString('en-CA',{month:'short',day:'numeric'})+'–'+end.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'})}
 validateDateRange();renderGoogleIntegrationForClient();
-if(googleSession){discoverGoogleCustomers();maybeLoadMetaPerformance()}
+maybeLoadGooglePerformance();maybeLoadMetaPerformance();
