@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*service-account*.json
+credentials*.json
+*.log
+.DS_Store
+**/dist/server/
+**/dist/.openai/
+*.zip
+*.tar.gz
