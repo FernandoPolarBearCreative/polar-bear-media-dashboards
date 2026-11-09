@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Polar Bear Comment Center prototype for monitoring and responding to ad comments.">
+  <title>Polar Bear Comment Center</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span>PB</span><div>Polar Bear<small>Comment Center</small></div></div>
+    <nav>
+      <button class="nav active">⌁ <span>Inbox</span><b id="navBadge">6</b></button>
+      <button class="nav">◎ <span>Analytics</span></button>
+      <button class="nav">⚡ <span>Automations</span></button>
+      <button class="nav">☷ <span>Response library</span></button>
+      <button class="nav">⚙ <span>Settings</span></button>
+    </nav>
+    <div class="sidebar-footer"><i></i><div>Prototype mode<small>Sample comments</small></div></div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div><p class="eyebrow">COMMUNITY MANAGEMENT</p><h1>Comment inbox</h1><p class="sub">Review and respond to comments across every client and active ad.</p></div>
+      <div class="live-status"><span></span><div><strong>Monitoring enabled</strong><small>Meta connection pending</small></div><button id="notificationButton">Test notification</button></div>
+    </header>
+
+    <section class="stats">
+      <article><div><small>Unanswered</small><strong id="unansweredCount">6</strong></div><span class="orange">↳</span><p><b>3 high priority</b> need attention</p></article>
+      <article><div><small>Average response</small><strong>18m</strong></div><span>◷</span><p><b>12m faster</b> than last week</p></article>
+      <article><div><small>Positive sentiment</small><strong>68%</strong></div><span>☺</span><p><b>+7%</b> from previous period</p></article>
+      <article><div><small>Resolved today</small><strong id="resolvedCount">14</strong></div><span>✓</span><p>Across <b>3 client accounts</b></p></article>
+    </section>
+
+    <section class="workspace">
+      <div class="inbox-panel">
+        <div class="filters">
+          <label>Client<select id="clientFilter"><option value="all">All clients</option><option value="lka">Little Kitchen Academy</option><option value="enotecca">Enotecca</option><option value="thrivebox">ThriveBox</option></select></label>
+          <label>Priority<select id="priorityFilter"><option value="all">All priorities</option><option value="high">High priority</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
+          <label>Sentiment<select id="sentimentFilter"><option value="all">All sentiment</option><option value="positive">Positive</option><option value="question">Question</option><option value="negative">Negative</option></select></label>
+          <label class="search">Search<input id="searchInput" placeholder="Comment, ad or person"></label>
+        </div>
+        <div class="inbox-tabs">
+          <button class="inbox-tab active" data-view="all">All comments</button>
+          <button class="inbox-tab" data-view="unanswered">Unanswered <b id="tabBadge">6</b></button>
+          <button class="inbox-tab" data-view="high">High priority</button>
+          <button class="inbox-tab" data-view="resolved">Resolved</button>
+        </div>
+        <div id="commentList" class="comment-list"></div>
+      </div>
+
+      <aside class="detail-panel" id="detailPanel">
+        <div class="empty-state"><span>↳</span><h2>Select a comment</h2><p>Open a comment to review context and prepare a response.</p></div>
+      </aside>
+    </section>
+
+    <section class="automation-preview">
+      <div class="section-heading"><div><p class="eyebrow">AUTOMATION PREVIEW</p><h2>Rules that keep the inbox moving</h2></div><span>Draft only · No automatic actions</span></div>
+      <div class="rule-grid">
+        <article><div class="rule-icon">?</div><div><strong>Frequently asked questions</strong><p>Suggest an approved answer for location, availability, shipping and membership questions.</p></div><label class="switch"><input type="checkbox" checked><i></i></label></article>
+        <article><div class="rule-icon">!</div><div><strong>Complaints and sensitive topics</strong><p>Mark high priority and require human approval before any response is published.</p></div><label class="switch"><input type="checkbox" checked><i></i></label></article>
+        <article><div class="rule-icon">✦</div><div><strong>Positive comments</strong><p>Prepare a short on-brand thank-you response for quick approval.</p></div><label class="switch"><input type="checkbox"><i></i></label></article>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast">Notification preview sent</div>
+<script src="app.js"></script>
+</body>
+</html>
