@@ -1,0 +1,21 @@
+{
+  "name": "pb-ads-google-connector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Secure Google Ads OAuth and reporting connector for the Polar Bear Media Dashboard.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "check": "node --check src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "google-auth-library": "^10.3.0"
+  }
+}
